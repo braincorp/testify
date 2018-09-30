@@ -138,12 +138,10 @@ func CallerInfo() []string {
 		}
 
 		parts := strings.Split(file, "/")
-		file = parts[len(parts)-1]
-		if len(parts) > 1 {
-			dir := parts[len(parts)-2]
-			if (dir != "assert" && dir != "mock" && dir != "require") || file == "mock_test.go" {
-				callers = append(callers, fmt.Sprintf("%s:%d", file, line))
-			}
+
+		// Everything except testify files
+		if !(len(parts) >= 3 && parts[len(parts)-3] == "testify") {
+			callers = append(callers, fmt.Sprintf("%s:%d", file, line))
 		}
 
 		// Drop the package
@@ -236,8 +234,16 @@ func Fail(t TestingT, failureMessage string, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
+	callers := CallerInfo()
+	short := make([]string, len(callers))
+	for i, c := range callers {
+		parts := strings.Split(c, "/")
+		short[i] = parts[len(parts)-1]
+	}
+
 	content := []labeledContent{
-		{"Error Trace", strings.Join(CallerInfo(), "\n\t\t\t")},
+		{"Long Trace", strings.Join(callers, "\n")},
+		{"Error Trace", strings.Join(short, "\n\t")},
 		{"Error", failureMessage},
 	}
 
